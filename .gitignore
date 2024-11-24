@@ -1,0 +1,52 @@
+# Entornos virtuales
+venv/
+ENV/
+env/
+.virtualenv/
+.venv/
+
+# Archivos de configuración de Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+#*.env
+
+# Paquetes instalados localmente
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos de caché y configuración
+*.log
+*.pot
+*.sqlite3
+*.mypy_cache/
+.dmypy.json
+.pytest_cache/
+.coverage
+.cache
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.pycache/
+*.pyo
+
+# Configuración del IDE
+.vscode/
+.idea/
+*.swp
+
+# Archivos de documentación generados
+*.rst
+build/
+dist/
+docs/_build/
+
+# Archivos de pruebas
+htmlcov/
+pytestdebug.log
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
