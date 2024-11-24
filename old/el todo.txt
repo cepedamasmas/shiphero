@@ -1,0 +1,444 @@
+# Integración ShipHero - Especificación Técnica
+
+Eres un experto programador Python especializado en integraciones con ShipHero. Necesito desarrollar una integración que:
+
+## 1. Credenciales y Configuración
+
+- Access Token: [TOKEN]
+- Refresh Token: [REFRESH]
+- Email: [EMAIL]
+- URL Base: https://public-api.shiphero.com/graphql
+
+## 2. Estructura del Proyecto
+
+### a. Clase Base (ShipHeroAPI)
+- Manejo de conexión y autenticación
+- Gestión de tokens y refresh
+- Métodos base para queries GraphQL
+- Sistema de logging y manejo de errores
+
+### b. Módulos Específicos (Clases independientes)
+- InventoryChanges: Para gestionar cambios de inventario
+- KitsManager: Para gestión de kits y componentes
+- InventoryStatus: Para consultas de stock
+
+Cada módulo heredará de la clase base ShipHeroAPI y extenderá su funcionalidad específica.
+
+## 3. Requerimientos por Módulo
+
+Para cada endpoint necesito:
+- Implementación del método correspondiente
+- Función de flatten para la respuesta
+- Exportación a CSV (con timestamp y logs)
+- Validación de datos y manejo de errores
+- Documentación completa (docstrings)
+
+### Formato de CSV
+- Separador: coma (,)
+- Encoding: UTF-8
+- Timestamp en nombre: YYYYMMDD_HHMMSS
+- Headers: snake_case
+- Fechas: formato ISO (YYYY-MM-DD HH:MM:SS)
+
+### Estructura de Logs
+- Nivel: INFO, WARNING, ERROR, DEBUG
+- Formato: [TIMESTAMP] [LEVEL] [MODULE] - Message
+- Rotación: Diaria
+- Retención: 30 días
+
+## 4. Características Adicionales
+
+- Manejo de rate limiting (max 100 req/min)
+- Retry logic para fallos de conexión (3 intentos)
+- Sistema de caché básico (TTL: 5 minutos)
+- Validación de inputs
+- Logs detallados de operaciones
+
+## 5. Output Esperado
+
+- CSVs con datos aplanados
+- Logs de operaciones
+- Reportes de errores
+- Documentación de uso
+
+## 6. Estructura de Archivos
+
+```
+/shiphero/
+  ├── config/
+  │   ├── .env               # Credenciales y configuración sensible
+  │   └── config.py          # Configuraciones generales
+  ├── modules/
+  │   ├── __init__.py
+  │   ├── base.py           # Clase base ShipHeroAPI
+  │   ├── inventory_changes.py
+  │   ├── kits_manager.py
+  │   └── inventory_status.py
+  ├── utils/
+  │   ├── __init__.py
+  │   ├── logger.py         # Configuración de logging
+  │   ├── helpers.py        # Funciones auxiliares
+  │   └── exceptions.py     # Excepciones personalizadas
+  ├── tests/
+  │   ├── __init__.py
+  │   ├── test_inventory.py
+  │   ├── test_kits.py
+  │   └── test_status.py
+  ├── logs/
+  │   └── .gitkeep
+  ├── output/
+  │   └── .gitkeep          # Directorio para CSVs
+  ├── main.py
+  ├── requirements.txt
+  └── README.md
+```
+
+## 7. Requisitos Técnicos
+
+### Dependencias Principales
+- Python >= 3.8
+- pandas >= 1.5.0
+- requests >= 2.28.0
+- python-dotenv >= 0.19.0
+- logging
+- pytest >= 7.0.0
+
+### Dependencias de Desarrollo
+- black (formateo)
+- flake8 (linting)
+- mypy (type checking)
+- pytest-cov (coverage)
+
+## 8. Control de Versiones
+
+- Git para versionado
+- Convención de commits: Conventional Commits
+- Branch principal: main
+- Branches de feature: feature/nombre-feature
+
+## 9. Documentación
+
+- README.md con instrucciones de instalación y uso
+- Docstrings en formato Google Style
+- Ejemplos de uso por módulo
+- Documentación de API en formato OpenAPI/Swagger
+
+## 10. Flujo de Desarrollo
+
+1. **Configuración Inicial**
+   - Crear estructura de directorios
+   - Configurar entorno virtual
+   - Instalar dependencias
+   - Configurar git
+
+2. **Implementación Base**
+   - Desarrollar clase base
+   - Configurar logging
+   - Implementar manejo de errores
+
+3. **Desarrollo por Módulos**
+   - Implementar InventoryChanges
+   - Implementar KitsManager
+   - Implementar InventoryStatus
+
+4. **Testing**
+   - Pruebas unitarias
+   - Pruebas de integración
+   - Coverage > 80%
+
+5. **Documentación**
+   - Generar documentación técnica
+   - Crear ejemplos de uso
+   - Documentar APIs
+
+6. **Despliegue**
+   - Revisión de código
+   - Tests finales
+   - Merge a main
+
+## 11. Notas Adicionales
+
+### Manejo de Errores
+- Implementar excepciones personalizadas
+- Logging detallado de errores
+- Retry automático para errores temporales
+- Notificación de errores críticos
+
+### Optimización
+- Implementar caché para queries frecuentes
+- Usar conexiones persistentes
+- Optimizar queries GraphQL
+- Manejar paginación eficientemente
+
+### Seguridad
+- No hardcodear credenciales
+- Implementar rate limiting
+- Validar inputs
+- Sanitizar outputs
+
+---
+
+Te iré proporcionando la documentación específica de cada endpoint para su implementación progresiva.
+
+**Prioridad inicial:** Implementación base y módulo de Inventory Changes.
+
+Prioridad inicial: Implementación base y módulo de Inventory Changes.
+
+------------------------------------------------------------------------
+Proyecto:Descripción del Proyecto para Wellow:
+
+El proyecto tiene como objetivo integrar datos de inventario de ShipHero con una base de datos MySQL para el cliente Wellow. Se utilizarán los siguientes endpoints clave de la API de ShipHero:
+
+------------------------------------------------------------------------
+Extracción de Recepciones de Inventario:
+Se utilizará el endpoint inventory-changes para obtener las recepciones de inventario y registrar los movimientos correspondientes.
+URL: https://developer.shiphero.com/examples-query/#inventory-changes
+(esto seria equivalente a movstock en JB, solo interesan recepcionesm, despues vemos bien como filtramos eso)
+Inventory Changes:
+You can also use this query to get all the inventory changes made to one SKU, for example:
+
+query {
+  inventory_changes(sku: "1122334888") {
+    request_id
+    complexity
+    data(first: 10) {
+      edges {
+        node {
+          user_id
+          account_id
+          warehouse_id
+          sku
+          previous_on_hand
+          change_in_on_hand
+          reason
+          cycle_counted
+          location_id
+          created_at
+          location {
+            id
+            legacy_id
+            account_id
+            warehouse_id
+            name
+            zone
+            pickable
+            sellable
+            is_cart
+            temperature
+            last_counted
+            created_at
+          }
+        }
+      }
+    }
+  }
+}
+This query slightly changes if you are on Dynamic or Static Slotting. For example, Location will only populate for Dynamic Slotting accounts.
+
+Other filters available for this Query can be:
+
+Location ID
+Location Name
+Date From
+Date To
+
+
+------------------------------------------------------------------------
+Gestión de Kits y Conjuntos:
+Se accederá al endpoint mutationkit para levantar las  "conjuntos" que se utilizan para agrupar productos en kits.
+URL: https://developer.shiphero.com/examples-mutation/#mutationkit
+
+Kit
+To create a Kit you have to use the kit_build Mutation, this is:
+
+mutation {
+  kit_build(
+    data: {
+      sku: "KitSKU"
+      components: [
+        { sku: "Component1", quantity: 1 }
+        { sku: "Component2", quantity: 1 }
+      ]
+      kit_build: false
+      warehouse_id: "V2FyZW4junNlOjY1NDU="
+    }
+  ) {
+    request_id
+    complexity
+    product {
+      id
+      sku
+      components {
+        id
+        sku
+      }
+    }
+  }
+}
+Where:
+
+KitSKU, Component1, and Component2 must already exist in that specific warehouse.
+kit_build: is if you need this Kit to be a Build Kit or not, the default will go to NO (false)
+And then, if you need to remove a component from the kit, you can use the kit_remove_components mutation:
+
+mutation {
+  kit_remove_components(
+    data: {
+      sku: "KitSKU"
+      components: [{ sku: "Component1" }]
+    }
+  ) {
+    request_id
+    complexity
+    product {
+      id
+      sku
+      components {
+        id
+        sku
+      }
+    }
+  }
+}
+
+If you also need to clear a Kit (disassemble the kit from its components in ALL warehouses) you can use the kit_clear mutation:
+
+mutation {
+  kit_clear(data: { sku: "1122334495" }) {
+    request_id
+    complexity
+  }
+}
+
+------------------------------------------------------------------------
+
+Consulta de Stock en Depósitos:
+Se consultará el endpoint inventory para obtener el estado del stock en los depósitos, garantizando claridad y precisión en los niveles de inventario.
+URL: https://developer.shiphero.com/examples-mutation-3
+
+
+Descripción
+El método inventory permite consultar información detallada sobre el stock de productos en los depósitos de ShipHero. Se puede personalizar la consulta para filtrar resultados según SKU, nombre de producto o ubicación.
+
+Requisitos
+Access Token válido: Se requiere un token de acceso proporcionado por ShipHero.
+Endpoint GraphQL:
+URL: https://public-api.shiphero.com/graphql
+Permisos: El usuario debe tener acceso a la información de inventario.
+Ejemplo de Query
+El siguiente ejemplo muestra cómo consultar el inventario de productos:
+
+graphql
+Copiar código
+query {
+  inventory(
+    sku: "PRODUCT-SKU-12345" # Reemplaza con el SKU deseado
+  ) {
+    edges {
+      node {
+        id
+        sku
+        warehouse_products {
+          warehouse_id
+          on_hand
+          reserved
+          available
+          replenishable
+        }
+      }
+    }
+  }
+}
+Parámetros del Query:
+
+sku (opcional): El identificador único del producto. Si no se proporciona, devuelve todos los productos.
+Respuesta Esperada:
+
+json
+Copiar código
+{
+  "data": {
+    "inventory": {
+      "edges": [
+        {
+          "node": {
+            "id": "12345",
+            "sku": "PRODUCT-SKU-12345",
+            "warehouse_products": [
+              {
+                "warehouse_id": "1",
+                "on_hand": 100,
+                "reserved": 20,
+                "available": 80,
+                "replenishable": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+
+------------------------------------------------------------------------
+
+ejemplo de clase:
+
+import requests
+import json
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+
+class ShipHeroAPI:
+    """
+    Clase para interactuar con la API de ShipHero.
+    """
+    
+    BASE_URL = "https://public-api.shiphero.com/graphql"
+    
+    def __init__(self, access_token: str, refresh_token: str, email: str):
+        """
+        Inicializa la clase con las credenciales necesarias.
+        
+        Args:
+            access_token (str): Token de acceso JWT de ShipHero
+            refresh_token (str): Token de actualización
+            email (str): Email asociado a la cuenta
+        """
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+        self.email = email
+        self.headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+
+    def _make_request(self, query: str, variables: Optional[Dict] = None) -> Dict:
+        """
+        Método interno para realizar peticiones GraphQL.
+        
+        Args:
+            query (str): Query GraphQL
+            variables (Dict, optional): Variables para la query
+            
+        Returns:
+            Dict: Respuesta de la API
+        """
+        payload = {
+            "query": query,
+            "variables": variables or {}
+        }
+        
+        response = requests.post(
+            self.BASE_URL,
+            headers=self.headers,
+            json=payload
+        )
+        
+        if response.status_code == 401:
+            # Aquí se podría implementar la lógica de refresh token
+            raise Exception("Token expirado o inválido")
+            
+        response.raise_for_status()
+        return response.json()
+------------------------------------------------------------------------
