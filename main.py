@@ -10,6 +10,7 @@ from typing import Optional
 from modules.inventory_changes import InventoryChanges
 from modules.kits_manager import KitsManager
 from modules.inventory_status import InventoryStatus
+from modules.products import Products
 from utils.logger import setup_logger
 from utils.helpers import validate_date_format
 from config.config import Config
@@ -22,8 +23,8 @@ def setup_argparse() -> argparse.ArgumentParser:
     
     parser.add_argument(
         '--module',
-        choices=['inventory', 'kits', 'status'],
-        help='Módulo a ejecutar (inventory, kits, status)',
+        choices=['inventory', 'kits', 'status', 'products'],
+        help='Módulo a ejecutar (inventory, kits, status, products)',
         required=True
     )
     
@@ -146,6 +147,43 @@ def process_kits(
         logger.error(f"Acción no reconocida: {action}")
         sys.exit(1)
 
+def process_products(
+    action: str,
+    sku: Optional[str] = None
+) -> None:
+    """
+    Procesa operaciones de products.
+    
+    Args:
+        action (str): Acción a realizar
+        sku (str, optional): SKU del kit
+    """
+    products_module = Products()
+    
+    if action == "get_details":
+
+        logger.info(f"Obteniendo detalles de productos")
+        df = products_module.get_products_details(sku)
+        
+        print("\nDetalles del kit:")
+        print(df)
+        
+        #csv_path = products_module.export_kit_details(df)
+        print(f"\nDetalles exportados a: {csv_path}")
+        
+    elif action == "clear_kit":
+        if not sku:
+            logger.error("Se requiere SKU para limpiar el kit")
+            sys.exit(1)
+            
+        logger.info(f"Limpiando kit: {sku}")
+        result = products_module.clear_kit(sku)
+        print(f"Kit {sku} limpiado exitosamente")
+        
+    else:
+        logger.error(f"Acción no reconocida: {action}")
+        sys.exit(1)
+
 def process_inventory_status(
     action: str,
     sku: Optional[str] = None,
@@ -227,6 +265,11 @@ def main():
                 args.action,
                 args.sku,
                 args.warehouse_id
+            )
+        elif args.module == "products":
+            process_products(
+                args.action,
+                args.sku
             )
         else:
             logger.error(f"Módulo no reconocido: {args.module}")

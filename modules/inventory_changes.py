@@ -40,22 +40,25 @@ class InventoryChanges(ShipHeroAPI):
             str: GraphQL query string
         """
         return """
-        query($dateFrom: DateTime, $dateTo: DateTime, $sku: String, $locationId: ID, $first: Int!, $after: String) {
+        query($dateFrom: ISODateTime, $dateTo: ISODateTime, $sku: String, $locationId: String, $first: Int, $after: String) {
             inventory_changes(
                 date_from: $dateFrom
                 date_to: $dateTo
                 sku: $sku
                 location_id: $locationId
-                first: $first
-                after: $after
             ) {
                 request_id
                 complexity
-                page_info {
-                    has_next_page
-                    end_cursor
-                }
-                data {
+                data (
+                    first: $first
+                    after: $after
+                ) {
+                    pageInfo {
+                        hasNextPage
+                        hasPreviousPage
+                        startCursor
+                        endCursor
+                    }
                     edges {
                         node {
                             user_id
@@ -83,6 +86,7 @@ class InventoryChanges(ShipHeroAPI):
                                 created_at
                             }
                         }
+                        cursor
                     }
                 }
             }
@@ -164,7 +168,10 @@ class InventoryChanges(ShipHeroAPI):
             
             try:
                 inventory_changes = response['data']['inventory_changes']
-                edges = inventory_changes['data']['edges']
+                inventory_changes_data = inventory_changes['data']
+                if not inventory_changes_data:
+                    break
+                edges = inventory_changes_data['edges']
                 
                 if not edges:
                     break
@@ -175,11 +182,14 @@ class InventoryChanges(ShipHeroAPI):
                     records_fetched += 1
                 
                 # Check pagination
-                page_info = inventory_changes['page_info']
-                if not page_info['has_next_page']:
+                if not 'pageInfo' in inventory_changes_data:
+                    break
+                
+                page_info = inventory_changes_data['pageInfo']
+                if not page_info['hasNextPage']:
                     break
                     
-                after_cursor = page_info['end_cursor']
+                after_cursor = page_info['endCursor']
                 
             except KeyError as e:
                 self.logger.error(f"Unexpected response format: {str(e)}")
