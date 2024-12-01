@@ -39,6 +39,7 @@ class SphSnapshotInventario(Base):
     snapshot_id = Column(Text, nullable=True)
     job_user_id = Column(Text, nullable=True)
     job_account_id = Column(Text, nullable=True)
+    warehouse_name = Column(Text, nullable=True)
     warehouse_id = Column(Text, nullable=True)
     customer_account_id = Column(Text, nullable=True)
     notification_email = Column(Text, nullable=True)
