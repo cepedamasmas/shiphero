@@ -19,7 +19,7 @@ from utils.helpers import validate_date_format
 from config.config import Config
 
 from utils.database import Database
-from modules.models import SphVersion, SphInventarioDetalle, SphSnapshotInventario
+from modules.models import SphVersion, SphInventarioDetalle, SphSnapshotInventario,SphProducto
 
 
 logger = setup_logger("main")
@@ -31,7 +31,7 @@ def setup_argparse() -> argparse.ArgumentParser:
     
     parser.add_argument(
         '--module',
-        choices=['inventory', 'kits', 'status', 'products','account','snapshot'],
+        choices=['inventory', 'kits', 'status', 'product','account','snapshot'],
         help='Módulo a ejecutar (inventory, kits, status, products)',
         required=True
     )
@@ -207,6 +207,23 @@ def process_products(
         
         #csv_path = products_module.export_kit_details(df)
         print(f"\nDetalles exportados a: {csv_path}")
+        
+    elif action == "get_all_kits":
+            
+        logger.info(f"Consultando todos los productos kits")
+        df = products_module.get_all_kits()
+        products_module.export_to_csv(df, 'kits')
+        
+    elif action == "get_all":
+            
+        logger.info(f"Consultando todos los productos")
+        df = products_module.get_all()
+        columnas_deseadas = ["name","sku","barcode","kit","active","kit_components"]
+        df_filtrado = df[columnas_deseadas].copy()
+        df_filtrado["kit_components"] = df_filtrado["kit_components"].apply(str)
+        #products_module.export_to_csv(df_filtrado)
+        products_module.insert_df_to_db(df_filtrado,'sph_producto')
+
         
     elif action == "clear_kit":
         if not sku:
@@ -442,7 +459,7 @@ def main():
                 args.sku,
                 args.warehouse_id
             )
-        elif args.module == "products":
+        elif args.module == "product":
             process_products(
                 args.action,
                 args.sku

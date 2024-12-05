@@ -88,3 +88,19 @@ class SphInventarioDetalle(Base):
 
     # Relación con SphSnapshotInventario
     snapshot = relationship("SphSnapshotInventario", back_populates="inventario_detalle")
+
+
+    
+class SphProducto(Base):
+    """
+    Modelo para la tabla sph_producto.
+    """
+    __tablename__ = "sph_producto"
+
+    sph_producto_id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(Text, nullable=True)
+    sku = Column(Text, nullable=True)
+    barcode = Column(Text, nullable=True)
+    kit = Column(Boolean, default=None) 
+    active = Column(Boolean, default=None)
+    kit_components = Column(Text, nullable=True)
