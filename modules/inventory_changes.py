@@ -6,6 +6,8 @@ from datetime import datetime
 import os
 from modules.base import ShipHeroAPI
 from utils.exceptions import ValidationError
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 
 class InventoryChanges(ShipHeroAPI):
     """
@@ -24,7 +26,8 @@ class InventoryChanges(ShipHeroAPI):
         date_to: Optional[str] = None,
         sku: Optional[str] = None,
         location_id: Optional[str] = None,
-        first: int = 100
+        first: int = 100,
+        reason: Optional[str] = None
     ) -> str:
         """
         Build GraphQL query for inventory changes.
@@ -40,12 +43,13 @@ class InventoryChanges(ShipHeroAPI):
             str: GraphQL query string
         """
         return """
-        query($dateFrom: ISODateTime, $dateTo: ISODateTime, $sku: String, $locationId: String, $first: Int, $after: String) {
+        query($dateFrom: ISODateTime, $dateTo: ISODateTime, $sku: String, $locationId: String, $first: Int, $after: String, $reason: String) {
             inventory_changes(
                 date_from: $dateFrom
                 date_to: $dateTo
                 sku: $sku
                 location_id: $locationId
+                reason: $reason
             ) {
                 request_id
                 complexity
@@ -132,6 +136,7 @@ class InventoryChanges(ShipHeroAPI):
         date_to: Optional[str] = None,
         sku: Optional[str] = None,
         location_id: Optional[str] = None,
+        reason: Optional[str] = None,
         max_records: int = 1000
     ) -> pd.DataFrame:
         """
@@ -161,7 +166,8 @@ class InventoryChanges(ShipHeroAPI):
                 "sku": sku,
                 "locationId": location_id,
                 "first": page_size,
-                "after": after_cursor
+                "after": after_cursor,
+                "reason": reason
             }
             
             response = self._make_request(query, variables)
@@ -195,7 +201,14 @@ class InventoryChanges(ShipHeroAPI):
                 self.logger.error(f"Unexpected response format: {str(e)}")
                 raise ValidationError(f"Invalid response format: {str(e)}")
         
-        return pd.DataFrame(all_changes)
+        df = pd.DataFrame(all_changes)  # Envolver en una lista para crear un DataFrame de una fila
+
+        if len(all_changes) == 0:
+            return df
+        # Convertir el snapshot en un DataFrame
+        
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        return df
 
     def export_to_csv(
         self,
@@ -229,3 +242,30 @@ class InventoryChanges(ShipHeroAPI):
         
         self.logger.info(f"Exported {len(df)} records to {filepath}")
         return filepath
+    
+    def insert_df_to_db(self,df,nombre_tabla):
+        if not nombre_tabla:
+            raise ValidationError(f"Se necesita un nombre de tabla")
+        
+        # Configura la conexión a la base de datos
+        DATABASE_URI = os.getenv("DATABASE_URL")
+    
+        self.logger.info(f"Abriendo conexion a DB")
+        # Crear una conexión usando SQLAlchemy
+        engine = create_engine(DATABASE_URI)
+        
+        # Inicia una transacción
+        with engine.begin():
+            try:
+                # Inserta los datos en la base de datos, usando chunksize para manejar grandes volúmenes de datos
+                df.to_sql(nombre_tabla, con=engine, if_exists="append", index=False, chunksize=1000)
+                self.logger.info("Datos insertados exitosamente en la tabla.")
+            
+            except SQLAlchemyError as e:
+                # Manejo de errores en SQLAlchemy
+                self.logger.error(f"Error al insertar los datos: {e}")
+                raise ValidationError(f"Error al insertar los datos: {e}")
+            except Exception as e:
+                # Manejo de otros errores
+                self.logger.error(f"Error inesperado: {e}")
+                raise ValidationError(f"Error inesperado: {e}")

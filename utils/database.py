@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 import os
@@ -66,3 +66,21 @@ class Database:
         except SQLAlchemyError as e:
             db_session.rollback()
             raise Exception(f"Error al insertar el registro: {e}")
+        
+    def get_max_created_at(self, db_session, model):
+        """
+        Obtiene el valor máximo de created_at de la tabla sph_transacciones.
+
+        Args:
+            db_session: Sesión activa de la base de datos.
+
+        Returns:
+            datetime: El valor máximo de created_at.
+        """
+        try:
+            # Realizamos la consulta para obtener el máximo de created_at
+            max_created_at = db_session.query(func.max(model.created_at)).scalar()
+            return max_created_at
+        except SQLAlchemyError as e:
+            db_session.rollback()
+            raise Exception(f"Error al obtener el valor máximo de created_at: {e}")

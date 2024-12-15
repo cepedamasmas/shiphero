@@ -104,3 +104,24 @@ class SphProducto(Base):
     kit = Column(Boolean, default=None) 
     active = Column(Boolean, default=None)
     kit_components = Column(Text, nullable=True)
+
+
+
+class SphTransacciones(Base):
+    """
+    Modelo para la tabla sph_transacciones.
+    """
+    __tablename__ = "sph_transacciones"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)  # Clave primaria opcional
+    warehouse_id = Column(Text, nullable=True)
+    sku = Column(Text, nullable=True)
+    previous_on_hand = Column(BigInteger, nullable=True, default=None)
+    change_in_on_hand = Column(BigInteger, nullable=True, default=None)
+    current_on_hand = Column(BigInteger, nullable=True, default=None)
+    reason = Column(Text, nullable=True)
+    cycle_counted = Column(Boolean, nullable=True, default=None)
+    location_id = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=True)
+    location_name = Column(Text, nullable=True)
+    location_zone = Column(Text, nullable=True)

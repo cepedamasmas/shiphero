@@ -19,7 +19,7 @@ from utils.helpers import validate_date_format
 from config.config import Config
 
 from utils.database import Database
-from modules.models import SphVersion, SphInventarioDetalle, SphSnapshotInventario,SphProducto
+from modules.models import SphVersion, SphInventarioDetalle, SphSnapshotInventario,SphProducto,SphTransacciones
 
 
 logger = setup_logger("main")
@@ -118,25 +118,41 @@ def process_inventory_changes(
 
     if action == "load_database":
             
-        logger.info(f"Obteniendo totalidad de inventario")
+        logger.info(f"Obteniendo transacciones del inventario")
+        date_from = None
+        with db.get_db() as session:
+            date_from = db.get_max_created_at(session,SphTransacciones)
+            if date_from:
+                date_from = date_from + timedelta(seconds=1)
+                date_from = date_from
+        
+        if date_from is None:
+            date_from = datetime(2024, 10, 1)
+
+        date_to = (date_from + timedelta(days=30))
         
         df = inventory_module.get_inventory_changes(
-            date_from=date_from,
-            date_to=date_to,
-            sku=sku,
-            location_id=None,
+            date_from=date_from.isoformat(),
+            date_to=date_to.isoformat(),
+            reason='Purchase Order',
             max_records=50000
         )
-        
+
         # Mostrar resumen
         print("\nResumen de cambios de inventario:")
         print(f"Total de registros: {len(df)}")
+        if len(df) == 0:
+            print("\nProceso finalizo correctamente")
+            return True
         print("\nMuestra de datos:")
         print(df.head())
         
         # Exportar a CSV
-        csv_path = inventory_module.export_to_csv(df)
-        print(f"\nDatos exportados a: {csv_path}")
+        
+        columnas_deseadas = ["warehouse_id","sku","previous_on_hand","change_in_on_hand","current_on_hand","reason","cycle_counted","location_id","created_at","location_name","location_zone"]
+        df_filtrado = df[columnas_deseadas].copy()
+
+        inventory_module.insert_df_to_db(df_filtrado,'sph_transacciones')
 
     else:
         logger.error(f"Acción no reconocida: {action}")
