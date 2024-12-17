@@ -10,6 +10,7 @@ class Config:
     """Configuration settings for ShipHero integration."""
     
     # API Configuration
+    BASE_URL_AUTH = "https://public-api.shiphero.com/"
     BASE_URL = "https://public-api.shiphero.com/graphql"
     ACCESS_TOKEN = os.getenv("SHIPHERO_ACCESS_TOKEN")
     REFRESH_TOKEN = os.getenv("SHIPHERO_REFRESH_TOKEN")

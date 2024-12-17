@@ -45,7 +45,7 @@ class ShipHeroAPI:
         """
         try:
             response = requests.post(
-                f"{self.config.BASE_URL}/refresh",
+                f"{self.config.BASE_URL_AUTH}/auth/refresh",
                 json={
                     "refresh_token": self.refresh_token,
                     "email": self.email
