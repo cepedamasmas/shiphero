@@ -8,6 +8,9 @@ import json
 from utils.logger import setup_logger
 from utils.exceptions import AuthenticationError, APIError, RateLimitError
 from config.config import Config
+from dotenv import set_key
+import os
+
 
 class ShipHeroAPI:
     """Base class for ShipHero API interactions."""
@@ -21,6 +24,9 @@ class ShipHeroAPI:
         self.access_token = self.config.ACCESS_TOKEN
         self.refresh_token = self.config.REFRESH_TOKEN
         self.email = self.config.EMAIL
+
+        project_root = os.getcwd()
+        self.env_path = os.path.join(project_root, "config", ".env")
         
         self._last_request_time = 0
         self._request_count = 0
@@ -57,6 +63,10 @@ class ShipHeroAPI:
                 self.access_token = data["access_token"]
                 self._token_expires_at = datetime.now() + timedelta(hours=1)
                 self.headers = self._get_headers()
+
+                # Actualiza el .env con el nuevo token
+                set_key(self.env_path, "SHIPHERO_ACCESS_TOKEN", self.access_token)
+                
                 self.logger.info("Access token refreshed successfully")
             else:
                 error_msg = f"Failed to refresh access token. Status: {response.status_code}"

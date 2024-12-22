@@ -39,6 +39,7 @@ class Config:
     
     @classmethod
     def validate_config(cls):
+        load_dotenv()  # Recarga el archivo .env por si hay cambios
         """Validate that all required configuration values are present."""
         required_vars = ["ACCESS_TOKEN", "REFRESH_TOKEN", "EMAIL"]
         missing_vars = [var for var in required_vars if not getattr(cls, var)]
