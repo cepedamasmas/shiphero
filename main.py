@@ -134,7 +134,7 @@ def process_inventory_changes(
         df = inventory_module.get_inventory_changes(
             date_from=date_from.isoformat(),
             date_to=date_to.isoformat(),
-            reason='Purchase Order',
+            #reason='Purchase Order',
             max_records=50000
         )
 

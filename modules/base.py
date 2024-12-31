@@ -157,6 +157,19 @@ class ShipHeroAPI:
             if 'errors' in response_data:
                 error_msg = f"GraphQL errors: {json.dumps(response_data['errors'], indent=2)}"
                 self.logger.error(error_msg)
+                
+                # Handle insufficient credits error
+                for error in response_data['errors']:
+                    if error.get("code") == 30:
+                        time_remaining = error.get("time_remaining")
+                        if time_remaining:
+                            # Extract the time in seconds from the message
+                            # seconds_to_wait = int(time_remaining.split()[0])
+                            seconds_to_wait = int(60)
+                            self.logger.info(f"Waiting {seconds_to_wait} seconds due to insufficient credits")
+                            time.sleep(seconds_to_wait)
+                            return self._make_request(query, variables, retry_count + 1)
+                
                 raise APIError(error_msg)
             
             return response_data
@@ -176,7 +189,7 @@ class ShipHeroAPI:
             error_msg = f"Unexpected error: {str(e)}"
             self.logger.error(error_msg)
             raise APIError(error_msg)
-
+        
     def _handle_rate_limiting(self) -> None:
         """Handle rate limiting by implementing delay if necessary."""
         current_time = time.time()
