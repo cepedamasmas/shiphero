@@ -6,7 +6,7 @@ from datetime import datetime
 import os
 from modules.base import ShipHeroAPI
 from utils.exceptions import ValidationError
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 class Products(ShipHeroAPI):
@@ -397,17 +397,32 @@ class Products(ShipHeroAPI):
         engine = create_engine(DATABASE_URI)
         
         # Inicia una transacción
-        with engine.begin():
+        with engine.connect() as connection:  # Abre la conexión
+            trans = connection.begin()  # Inicia la transacción
             try:
-                # Inserta los datos en la base de datos, usando chunksize para manejar grandes volúmenes de datos
-                df.to_sql(nombre_tabla, con=engine, if_exists="append", index=False, chunksize=1000)
-                self.logger.info("Datos insertados exitosamente en la tabla.")
-            
+                # Ejecuta el TRUNCATE TABLE
+                self.logger.info(f"Truncando la tabla {nombre_tabla}")
+                connection.execute(text(f"TRUNCATE TABLE {nombre_tabla}"))
+                self.logger.info(f"Tabla {nombre_tabla} truncada exitosamente.")
+
+                # Inserta los datos en la base de datos
+                self.logger.info("Insertando datos en la tabla.")
+                df.to_sql(nombre_tabla, con=connection, if_exists="append", index=False, chunksize=1000)
+
+                # Confirma la transacción
+                trans.commit()
+                self.logger.info("Datos insertados exitosamente, transacción confirmada.")
+
             except SQLAlchemyError as e:
-                # Manejo de errores en SQLAlchemy
+                # Rollback de la transacción en caso de error
+                trans.rollback()
                 self.logger.error(f"Error al insertar los datos: {e}")
                 raise ValidationError(f"Error al insertar los datos: {e}")
             except Exception as e:
-                # Manejo de otros errores
+                # Rollback de la transacción en caso de error
+                trans.rollback()
                 self.logger.error(f"Error inesperado: {e}")
                 raise ValidationError(f"Error inesperado: {e}")
+            finally:
+                # Cierra la conexión
+                connection.close()

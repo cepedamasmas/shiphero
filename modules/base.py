@@ -25,7 +25,13 @@ class ShipHeroAPI:
         self.refresh_token = self.config.REFRESH_TOKEN
         self.email = self.config.EMAIL
 
-        project_root = os.getcwd()
+        # Ruta del archivo actual
+        current_file_path = os.path.abspath(__file__)
+        # Directorio del archivo actual
+        current_dir = os.path.dirname(current_file_path)
+        # Ruta al directorio raíz del proyecto
+        project_root = os.path.abspath(os.path.join(current_dir, ".."))
+        # Ruta a la carpeta "config" y al archivo ".env"
         self.env_path = os.path.join(project_root, "config", ".env")
         
         self._last_request_time = 0
