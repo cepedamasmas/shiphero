@@ -240,6 +240,16 @@ def process_products(
         #products_module.export_to_csv(df_filtrado)
         products_module.insert_df_to_db(df_filtrado,'sph_producto')
 
+        with db.get_db() as db_session:
+            try:
+                procedure_name = "process_kits_shiphero"
+                params = None
+
+                results = db.execute_stored_procedure(db_session, procedure_name, params)
+                print("Resultados del procedimiento almacenado:", results)
+            except Exception as e:
+                print("Error:", e)
+
         
     elif action == "clear_kit":
         if not sku:

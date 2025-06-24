@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import contextmanager
+from sqlalchemy.sql import text
 
 # Cargar configuración desde .env
 load_dotenv()
@@ -84,3 +85,34 @@ class Database:
         except SQLAlchemyError as e:
             db_session.rollback()
             raise Exception(f"Error al obtener el valor máximo de created_at: {e}")
+        
+    def execute_stored_procedure(self, db_session, procedure_name, params=None):
+        """
+        Ejecuta un procedimiento almacenado en la base de datos.
+
+        Args:
+            db_session: Sesión activa de la base de datos.
+            procedure_name (str): Nombre del procedimiento almacenado.
+            params (list, optional): Lista de parámetros para el procedimiento almacenado.
+
+        Returns:
+            list: Resultados de la ejecución del procedimiento almacenado.
+        """
+        try:
+            # Construir la llamada al procedimiento almacenado
+            param_placeholders = ", ".join([":p" + str(i) for i in range(len(params))]) if params else ""
+            query = text(f"CALL {procedure_name}({param_placeholders})")
+
+            # Crear un diccionario de parámetros
+            param_dict = {f"p{i}": param for i, param in enumerate(params or [])}
+
+            # Ejecutar el procedimiento almacenado
+            result = db_session.execute(query, param_dict)
+            
+            # Si el procedimiento devuelve resultados, los obtenemos
+            if result.returns_rows:
+                return result.fetchall()
+            return None
+        except SQLAlchemyError as e:
+            db_session.rollback()
+            raise Exception(f"Error al ejecutar el procedimiento almacenado '{procedure_name}': {e}")

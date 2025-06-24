@@ -171,7 +171,7 @@ class ShipHeroAPI:
                         if time_remaining:
                             # Extract the time in seconds from the message
                             # seconds_to_wait = int(time_remaining.split()[0])
-                            seconds_to_wait = int(60)
+                            seconds_to_wait = int(10)
                             self.logger.info(f"Waiting {seconds_to_wait} seconds due to insufficient credits")
                             time.sleep(seconds_to_wait)
                             return self._make_request(query, variables, retry_count + 1)
