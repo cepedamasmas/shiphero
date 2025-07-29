@@ -21,6 +21,75 @@ class InventorySnapshot(ShipHeroAPI):
         super().__init__()
         self.logger.info("InventorySnapshot module initialized")
 
+    def _build_abort_snapshot_mutation(self) -> str:
+        """
+        Build GraphQL mutation to abort a snapshot.
+
+        Returns:
+            str: GraphQL mutation string
+        """
+        return """
+        mutation InventoryAbortSnapshot($snapshot_id: String!) {
+        inventory_abort_snapshot(data: { snapshot_id: $snapshot_id }) {
+    request_id
+    complexity
+    snapshot {
+      snapshot_id
+      job_user_id
+      job_account_id
+      warehouse_id
+      customer_account_id
+      notification_email
+      email_error
+      post_url
+      post_error
+      post_url_pre_check
+      status
+      error
+      created_at
+      enqueued_at
+      updated_at
+      snapshot_url
+      snapshot_expiration
+    }
+  }
+}
+        """
+
+    def abort_snapshot(self, snapshot_id: str) -> Dict[str, Any]:
+        """
+        Aborta un snapshot en ejecución.
+
+        Args:
+            snapshot_id (str): ID del snapshot a abortar.
+
+        Returns:
+            Dict[str, Any]: Respuesta de la API de ShipHero.
+
+        Raises:
+            ValidationError: Si la respuesta es inválida o si ocurre un error en la solicitud.
+        """
+        if not snapshot_id:
+            raise ValidationError("Debe proporcionar un snapshot_id para abortar.")
+        
+        query = self._build_abort_snapshot_mutation()
+        variables = {"snapshot_id": snapshot_id}
+
+        try:
+            response = self._make_request(query, variables)
+
+            if "data" not in response or "inventory_abort_snapshot" not in response["data"]:
+                self.logger.error("La respuesta de abort_snapshot es inválida.")
+                raise ValidationError("Respuesta inválida al intentar abortar el snapshot.")
+            
+            result = response["data"]["inventory_abort_snapshot"]
+            self.logger.info(f"Snapshot {snapshot_id} abortado correctamente.")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error al abortar snapshot: {e}")
+            raise ValidationError(f"Fallo al abortar snapshot: {e}")
+
     def _build_inventory_snapshot_mutation(
         self
     ) -> str:

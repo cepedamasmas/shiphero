@@ -354,45 +354,51 @@ def process_snapshot(
             print(f"Registro insertado con ID: {sph_version_id}")
         
         for index, row in df_warehouses.iterrows():
-            snapshot_id = process_snapshot('generate_snapshot',row['warehouse_id'])
-            snapshot_url = None
-            max_intentos = 10
-            intentos = 0
+            try:
+                snapshot_id = process_snapshot('generate_snapshot',row['warehouse_id'])
+                snapshot_url = None
+                max_intentos = 10
+                intentos = 0
 
-            while not snapshot_url and intentos < max_intentos:
-                # Realiza las acciones necesarias dentro del ciclo
-                print(f"intento nro {intentos}")
-                time.sleep(5)
-                df_snapshot = process_snapshot('get_snapshot',None, snapshot_id)
-                snapshot_url = df_snapshot.at[0, "snapshot_url"]
-                print('snapshot_url', snapshot_url)
-                intentos += 1
+                while not snapshot_url and intentos < max_intentos:
+                    # Realiza las acciones necesarias dentro del ciclo
+                    print(f"intento nro {intentos}")
+                    time.sleep(5)
+                    df_snapshot = process_snapshot('get_snapshot',None, snapshot_id)
+                    snapshot_url = df_snapshot.at[0, "snapshot_url"]
+                    print('snapshot_url', snapshot_url)
+                    intentos += 1
 
-            df_snapshot['sph_version_id'] = sph_version_id
-            df_snapshot['warehouse_name'] = row['address_name']
-            
-            data = df_snapshot.iloc[0].to_dict()
+                if not snapshot_url:
+                    inventory_snapshot_module.abort_snapshot(snapshot_id=snapshot_id)
 
-            # Eliminar columnas no definidas en el modelo (opcional)
-            valid_keys = {col.name for col in SphSnapshotInventario.__table__.columns}
-            filtered_data = {key: value for key, value in data.items() if key in valid_keys}
+                df_snapshot['sph_version_id'] = sph_version_id
+                df_snapshot['warehouse_name'] = row['address_name']
+                
+                data = df_snapshot.iloc[0].to_dict()
 
-            with db.get_db() as session:
-                sph_snapshot_inventario_id = db.insert_record(
-                    db_session=session,
-                    model=SphSnapshotInventario,
-                    **filtered_data
+                # Eliminar columnas no definidas en el modelo (opcional)
+                valid_keys = {col.name for col in SphSnapshotInventario.__table__.columns}
+                filtered_data = {key: value for key, value in data.items() if key in valid_keys}
+                sph_snapshot_inventario_id= None
+                with db.get_db() as session:
+                    sph_snapshot_inventario_id = db.insert_record(
+                        db_session=session,
+                        model=SphSnapshotInventario,
+                        **filtered_data
+                    )
+                #inventory_snapshot_module.insert_df_to_db(df_snapshot,'sph_snapshot_inventario')
+
+                logger.info(f"Consumo la url con el json")
+                df_inventory = inventory_snapshot_module.get_inventory_snapshot_by_url(
+                    snapshot_url=snapshot_url
                 )
-            #inventory_snapshot_module.insert_df_to_db(df_snapshot,'sph_snapshot_inventario')
-
-            logger.info(f"Consumo la url con el json")
-            df_inventory = inventory_snapshot_module.get_inventory_snapshot_by_url(
-                snapshot_url=snapshot_url
-            )
-            df_inventory['sph_snapshot_inventario_id'] = sph_snapshot_inventario_id
-            #inventory_snapshot_module.export_to_csv(df_inventory,f'{row["address_name"]}_inventario')
-            inventory_snapshot_module.insert_df_to_db(df_inventory,'sph_inventario_detalle')
-
+                df_inventory['sph_snapshot_inventario_id'] = sph_snapshot_inventario_id
+                #inventory_snapshot_module.export_to_csv(df_inventory,f'{row["address_name"]}_inventario')
+                inventory_snapshot_module.insert_df_to_db(df_inventory,'sph_inventario_detalle')
+            except Exception as e:
+                logger.error(f"Error procesando el warehouse {row['address_name']}: {str(e)}")
+                continue
 
         
     else:

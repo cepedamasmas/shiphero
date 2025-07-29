@@ -43,12 +43,11 @@ class InventoryChanges(ShipHeroAPI):
             str: GraphQL query string
         """
         return """
-        query($dateFrom: ISODateTime, $dateTo: ISODateTime, $sku: String, $locationId: String, $first: Int, $after: String, $reason: String) {
+        query($dateFrom: ISODateTime, $dateTo: ISODateTime, $sku: String, $first: Int, $after: String, $reason: String) {
             inventory_changes(
                 date_from: $dateFrom
                 date_to: $dateTo
                 sku: $sku
-                location_id: $locationId
                 reason: $reason
             ) {
                 request_id
